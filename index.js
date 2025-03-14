@@ -24,13 +24,10 @@ const distube = new DisTube(client, {
     plugins: [
         new SpotifyPlugin(),
         new YtDlpPlugin({
-            update: true,
             ytdlOptions: {
-                cookieFile: 'cookies.txt',
-                highWaterMark: 1 << 25,
-                format: 'bestaudio/best',
+              cookies: './cookies.txt'
             }
-        })
+          })
     ],
 });
 
