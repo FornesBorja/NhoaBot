@@ -23,7 +23,11 @@ const distube = new DisTube(client, {
     emitNewSongOnly: true,
     plugins: [
         new SpotifyPlugin(),
-        new YtDlpPlugin()
+        new YtDlpPlugin({
+            ytdlOptions: {
+              cookies: './cookies.txt'
+            }
+          })
     ],
 });
 
