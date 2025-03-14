@@ -7,6 +7,7 @@ const { YtDlpPlugin } = require('@distube/yt-dlp');
 const ytdl = require('ytdl-core');
 const ffmpeg = require('@ffmpeg-installer/ffmpeg');
 process.env.FFMPEG_PATH = ffmpeg.path;
+const ytSearch = require('yt-search');
 
 const client = new Client({
     intents: [
@@ -46,11 +47,23 @@ client.on('messageCreate', async (message) => {
                 member: message.member,
             });
         } else {
+            // Si no es una URL, hacemos la búsqueda usando yt-search
             console.log('Buscando canción: ' + query);
-            await distube.play(message.member.voice.channel, query, {
+
+            const results = await ytSearch(query);  // Realiza la búsqueda
+            if (!results || !results.videos || results.videos.length === 0) {
+                return message.reply('No pude encontrar ninguna canción con ese nombre.');
+            }
+
+            // Tomamos el primer resultado de la búsqueda
+            const videoUrl = results.videos[0].url;
+
+            // Reproducir la canción encontrada
+            await distube.play(message.member.voice.channel, videoUrl, {
                 textChannel: message.channel,
                 member: message.member,
             });
+            message.channel.send(`Reproduciendo: ${results.videos[0].title}`);
         }
     } catch (error) {
         console.error('Error al intentar reproducir la canción:', error);
