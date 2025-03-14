@@ -23,11 +23,7 @@ const distube = new DisTube(client, {
     emitNewSongOnly: true,
     plugins: [
         new SpotifyPlugin(),
-        new YtDlpPlugin({
-            ytdlOptions: {
-              cookies: './cookies.txt'
-            }
-          })
+        new YtDlpPlugin()
     ],
 });
 
@@ -65,7 +61,7 @@ client.on('messageCreate', async (message) => {
                 textChannel: message.channel,
                 member: message.member,
             });
-            message.channel.send(`Reproduciendo: ${results.videos[0].title}`);
+            message.channel.send(`▶️ **Reproduciendo:** ${results.videos[0].title}`);
         }
     } catch (error) {
         console.error('Error al intentar reproducir la canción:', error);
