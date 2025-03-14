@@ -47,18 +47,16 @@ client.on('messageCreate', async (message) => {
                 member: message.member,
             });
         } else {
-            // Si no es una URL, hacemos la búsqueda usando yt-search
+
             console.log('Buscando canción: ' + query);
 
-            const results = await ytSearch(query);  // Realiza la búsqueda
+            const results = await ytSearch(query); 
             if (!results || !results.videos || results.videos.length === 0) {
                 return message.reply('No pude encontrar ninguna canción con ese nombre.');
             }
 
-            // Tomamos el primer resultado de la búsqueda
             const videoUrl = results.videos[0].url;
 
-            // Reproducir la canción encontrada
             await distube.play(message.member.voice.channel, videoUrl, {
                 textChannel: message.channel,
                 member: message.member,
@@ -70,6 +68,33 @@ client.on('messageCreate', async (message) => {
         return message.reply('Hubo un error al intentar reproducir la canción. Intenta de nuevo más tarde.');
     }
 });
+client.on('messageCreate', async (message) => {
+    if (!message.content.startsWith('.skip')) return;
+
+    if (!message.member.voice.channel) {
+        return message.reply('¡Debes estar en un canal de voz para saltar la canción!');
+    }
+
+    const queue = distube.getQueue(message.guild.id);
+    
+    if (!queue) {
+        return message.reply('No hay ninguna canción en la cola.');
+    }
+
+    try {
+        if (queue.songs.length > 1) {
+            await distube.skip(message);
+            message.channel.send('⏭️ **Canción saltada**. Reproduciendo la siguiente en la cola.');
+        } else {
+            distube.stop(message);
+            message.channel.send('⏹️ No hay más canciones en la cola. El bot ha salido del canal.');
+        }
+    } catch (error) {
+        console.error('Error al intentar saltar la canción:', error);
+        message.reply('No se pudo saltar la canción. Puede que no haya más canciones en la cola.');
+    }
+});
+
 
 client.login(process.env.DISCORD_TOKEN);
 
