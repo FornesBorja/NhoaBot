@@ -19,7 +19,7 @@ const client = new Client({
     ],
 });
 
-const distube = new DisTube(client, { 
+const distube = new DisTube(client, {
     emitNewSongOnly: true,
     plugins: [
         new SpotifyPlugin(),
@@ -39,7 +39,7 @@ client.on('messageCreate', async (message) => {
     if (!query) return message.reply('Debes escribir el nombre de una canción o un enlace.');
 
     try {
-        
+
         if (ytdl.validateURL(query)) {
             message.reply('Reproduciendo canción: ' + query);
             await distube.play(message.member.voice.channel, query, {
@@ -50,7 +50,7 @@ client.on('messageCreate', async (message) => {
 
             console.log('Buscando canción: ' + query);
 
-            const results = await ytSearch(query); 
+            const results = await ytSearch(query);
             if (!results || !results.videos || results.videos.length === 0) {
                 return message.reply('No pude encontrar ninguna canción con ese nombre.');
             }
@@ -68,6 +68,11 @@ client.on('messageCreate', async (message) => {
         return message.reply('Hubo un error al intentar reproducir la canción. Intenta de nuevo más tarde.');
     }
 });
+distube.on('finish', (queue) => {
+    queue.textChannel.send('La cola ha terminado. Saliendo del canal de voz. 👋');
+    distube.voices.leave(queue);
+});
+
 client.on('messageCreate', async (message) => {
     if (!message.content.startsWith('.skip')) return;
 
@@ -76,7 +81,7 @@ client.on('messageCreate', async (message) => {
     }
 
     const queue = distube.getQueue(message.guild.id);
-    
+
     if (!queue) {
         return message.reply('No hay ninguna canción en la cola.');
     }
