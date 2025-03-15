@@ -73,6 +73,12 @@ distube.on('finish', (queue) => {
     distube.voices.leave(message.guild);
 });
 
+distube.on('empty', (queue) => {
+    queue.textChannel.send('Me habéis dejado solo... Saliendo...');
+    distube.voices.leave(message.guild);
+});
+
+
 client.on('messageCreate', async (message) => {
     if (!message.content.startsWith('.skip')) return;
 
