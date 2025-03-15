@@ -68,6 +68,11 @@ client.on('messageCreate', async (message) => {
         return message.reply('Hubo un error al intentar reproducir la canción. Intenta de nuevo más tarde.');
     }
 });
+distube.on('finish', (queue) => {
+    queue.textChannel.send('La cola ha terminado. Saliendo del canal de voz. 👋');
+    distube.voices.leave(message.guild);
+});
+
 client.on('messageCreate', async (message) => {
     if (!message.content.startsWith('.skip')) return;
 
