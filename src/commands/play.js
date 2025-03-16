@@ -1,6 +1,10 @@
 const ytdl = require('ytdl-core');
 const ytSearch = require('yt-search');
+const MusicPlayer = require('../services/musicPlayer');
 const { distube } = require('../config/config');
+
+// Obtenemos la instancia única
+const musicPlayer = MusicPlayer.getInstance(distube);
 
 module.exports = {
     name: 'play',
@@ -15,7 +19,7 @@ module.exports = {
         try {
             if (ytdl.validateURL(query)) {
                 message.reply('Reproduciendo canción: ' + query);
-                await distube.play(message.member.voice.channel, query, {
+                await musicPlayer.play(message.member.voice.channel, query, {
                     textChannel: message.channel,
                     member: message.member,
                 });
@@ -26,7 +30,7 @@ module.exports = {
                 }
 
                 const videoUrl = results.videos[0].url;
-                await distube.play(message.member.voice.channel, videoUrl, {
+                await musicPlayer.play(message.member.voice.channel, videoUrl, {
                     textChannel: message.channel,
                     member: message.member,
                 });

@@ -2,6 +2,7 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const { client, distube } = require('./config/config');
+const MusicPlayer = require('./services/musicPlayer');
 
 client.commands = new Map();
 const commandsPath = path.join(__dirname, 'commands');
@@ -41,21 +42,6 @@ client.on('messageCreate', async (message) => {
     }
 });
 
-distube
-    .on('playSong', (queue, song) => {
-        queue.textChannel.send(`**▶️ Reproduciendo: **\`${song.name}\``);
-    })
-    .on('addSong', (queue, song) => {
-        queue.textChannel.send(`✅ Añadida \`${song.name}\` a la cola`);
-    })
-    .on('empty', (queue) => {
-        queue.textChannel.send('El canal de voz está vacío. ¡Hasta luego! 👋');
-        queue.stop();
-        queue.voice.leave();
-    })
-    .on('finish', (queue) => {
-        queue.textChannel.send('No hay más canciones en la cola. ¡Hasta luego! 👋');
-        queue.voice.leave();
-    });
+const musicPlayer = MusicPlayer.getInstance(distube);
 
 client.login(process.env.DISCORD_TOKEN);
