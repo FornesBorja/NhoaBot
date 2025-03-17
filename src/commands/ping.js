@@ -11,15 +11,14 @@ module.exports = {
             const botPing = sent.createdTimestamp - message.createdTimestamp;
             const apiPing = message.client.ws.ping;
 
-            const euwServer = 'euw.api.riotgames.com';
             
             let euwPing;
             try {
                 if (process.platform === 'win32') {
-                    const { stdout } = await execPromise(`ping ${euwServer} -n 1`);
+                    const { stdout } = await execPromise(`ping euw.leagueoflegends.com`);
                     euwPing = stdout.match(/tiempo[=<](\d+)/)?.[1] || 'N/A';
                 } else {
-                    const { stdout } = await execPromise(`ping -c 1 ${euwServer}`);
+                    const { stdout } = await execPromise(`ping -c 1 euw.leagueoflegends.com`);
                     euwPing = stdout.match(/time=(\d+\.\d+)/)?.[1] || 'N/A';
                 }
             } catch (error) {
