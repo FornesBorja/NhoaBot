@@ -44,7 +44,6 @@ class MusicPlayer {
         return MusicPlayer.instance;
     }
 
-    // Podemos agregar más métodos útiles aquí
     getQueue(guildId) {
         return this.distube.getQueue(guildId);
     }
