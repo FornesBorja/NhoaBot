@@ -17,9 +17,13 @@ module.exports = {
                 await distube.skip(message);
                 message.channel.send('⏭️ **Canción saltada**. Reproduciendo la siguiente en la cola.');
             } else {
-                await distube.stop(message);
-                message.guild.members.me.voice.disconnect();
-                message.channel.send('⏹️ No hay más canciones en la cola. ¡Hasta luego! 👋');
+                await setTimeout(() => {
+                    distube.stop(message);
+                    message.guild.members.me.voice.disconnect();
+                    message.channel.send('⏹️ No hay más canciones en la cola. ¡Hasta luego! 👋');
+                  }, 60000);
+                  
+               
             }
         } catch (error) {
             console.error('Error al intentar saltar la canción:', error);

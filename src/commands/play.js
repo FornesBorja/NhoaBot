@@ -3,7 +3,6 @@ const ytSearch = require('yt-search');
 const MusicPlayer = require('../services/musicPlayer');
 const { distube } = require('../config/config');
 
-// Obtenemos la instancia única
 const musicPlayer = MusicPlayer.getInstance(distube);
 
 module.exports = {

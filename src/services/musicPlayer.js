@@ -27,8 +27,13 @@ class MusicPlayer {
                 queue.voice.leave();
             })
             .on('finish', (queue) => {
-                queue.textChannel.send('No hay más canciones en la cola. ¡Hasta luego! 👋');
-                queue.voice.leave();
+                queue.textChannel.send('🎵 La cola de reproducción ha terminado.');
+                setTimeout(() => {
+                    if (queue.voice.channel) {
+                        queue.textChannel.send('⏹️ No hay más canciones en la cola. ¡Hasta luego! 👋');
+                        queue.voice.leave();
+                    }
+                }, 60000);
             });
     }
 
@@ -39,7 +44,6 @@ class MusicPlayer {
         return MusicPlayer.instance;
     }
 
-    // Podemos agregar más métodos útiles aquí
     getQueue(guildId) {
         return this.distube.getQueue(guildId);
     }
