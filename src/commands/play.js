@@ -1,9 +1,74 @@
 const ytdl = require('ytdl-core');
 const ytSearch = require('yt-search');
-const MusicPlayer = require('../services/musicPlayer');
 const { distube } = require('../config/config');
 
-const musicPlayer = MusicPlayer.getInstance(distube);
+// Sistema de caché optimizado
+const searchCache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000;
+
+class MusicManager {
+    constructor() {
+        this.queues = new Map();
+        this.playing = new Map();
+        this.buffer = new Map();
+        this.bufferSize = 2;
+    }
+
+    async addToQueue(guildId, track, message) {
+        if (!this.queues.has(guildId)) {
+            this.queues.set(guildId, []);
+        }
+        
+        const queue = this.queues.get(guildId);
+        queue.push(track);
+        
+        if (!this.playing.has(guildId)) {
+            await this.playNext(guildId, message);
+        } else {
+            this.precacheNext(guildId);
+        }
+    }
+
+    async playNext(guildId, message) {
+        const queue = this.queues.get(guildId);
+        if (!queue || queue.length === 0) {
+            this.playing.delete(guildId);
+            return;
+        }
+
+        const track = queue.shift();
+        this.playing.set(guildId, track);
+        
+        try {
+            await distube.play(message.member.voice.channel, track, {
+                textChannel: message.channel,
+                member: message.member,
+            });
+            
+            this.precacheNext(guildId);
+        } catch (error) {
+            console.error('Error al reproducir:', error);
+            this.playing.delete(guildId);
+            await this.playNext(guildId, message);
+        }
+    }
+
+    async precacheNext(guildId) {
+        const queue = this.queues.get(guildId);
+        if (queue && queue.length > 0) {
+            const nextTrack = queue[0];
+            try {
+                await distube.createCustomPlaylist(nextTrack, {
+                    properties: { seek: 0 }
+                });
+            } catch (error) {
+                console.error('Error al precargar:', error);
+            }
+        }
+    }
+}
+
+const musicManager = new MusicManager();
 
 module.exports = {
     name: 'play',
@@ -16,27 +81,38 @@ module.exports = {
         if (!query) return message.reply('Debes escribir el nombre de una canción o un enlace.');
 
         try {
-            if (ytdl.validateURL(query)) {
-                message.reply('Reproduciendo canción: ' + query);
-                await musicPlayer.play(message.member.voice.channel, query, {
-                    textChannel: message.channel,
-                    member: message.member,
-                });
-            } else {
-                const results = await ytSearch(query);
-                if (!results?.videos?.length) {
-                    return message.reply('No pude encontrar ninguna canción con ese nombre.');
+            let videoUrl;
+            
+            if (searchCache.has(query)) {
+                const cached = searchCache.get(query);
+                if (Date.now() - cached.timestamp < CACHE_DURATION) {
+                    videoUrl = cached.url;
                 }
-
-                const videoUrl = results.videos[0].url;
-                await musicPlayer.play(message.member.voice.channel, videoUrl, {
-                    textChannel: message.channel,
-                    member: message.member,
-                });
             }
+
+            if (!videoUrl) {
+                if (ytdl.validateURL(query)) {
+                    videoUrl = query;
+                } else {
+                    const results = await ytSearch(query);
+                    if (!results?.videos?.length) {
+                        return message.reply('No pude encontrar ninguna canción con ese nombre.');
+                    }
+                    videoUrl = results.videos[0].url;
+                    
+                    searchCache.set(query, {
+                        url: videoUrl,
+                        timestamp: Date.now()
+                    });
+                }
+            }
+
+            await musicManager.addToQueue(message.guild.id, videoUrl, message);
+            message.reply('Canción añadida a la cola! 🎵');
+            
         } catch (error) {
-            console.error('Error al intentar reproducir la canción:', error);
-            return message.reply('Hubo un error al intentar reproducir la canción. Intenta de nuevo más tarde.');
+            console.error('Error:', error);
+            return message.reply('Hubo un error al intentar reproducir la canción.');
         }
     }
 };
