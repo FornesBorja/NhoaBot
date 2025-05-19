@@ -1,80 +1,23 @@
 const ytdl = require('ytdl-core');
 const ytSearch = require('yt-search');
 const { distube } = require('../config/config');
+const { leaveTimers } = require('./leave');
 
 // Sistema de caché optimizado
 const searchCache = new Map();
 const CACHE_DURATION = 5 * 60 * 1000;
-
-class MusicManager {
-    constructor() {
-        this.queues = new Map();
-        this.playing = new Map();
-        this.buffer = new Map();
-        this.bufferSize = 2;
-    }
-
-    async addToQueue(guildId, track, message) {
-        if (!this.queues.has(guildId)) {
-            this.queues.set(guildId, []);
-        }
-        
-        const queue = this.queues.get(guildId);
-        queue.push(track);
-        
-        if (!this.playing.has(guildId)) {
-            await this.playNext(guildId, message);
-        } else {
-            this.precacheNext(guildId);
-        }
-    }
-
-    async playNext(guildId, message) {
-        const queue = this.queues.get(guildId);
-        if (!queue || queue.length === 0) {
-            this.playing.delete(guildId);
-            return;
-        }
-
-        const track = queue.shift();
-        this.playing.set(guildId, track);
-        
-        try {
-            await distube.play(message.member.voice.channel, track, {
-                textChannel: message.channel,
-                member: message.member,
-            });
-            
-            this.precacheNext(guildId);
-        } catch (error) {
-            console.error('Error al reproducir:', error);
-            this.playing.delete(guildId);
-            await this.playNext(guildId, message);
-        }
-    }
-
-    async precacheNext(guildId) {
-        const queue = this.queues.get(guildId);
-        if (queue && queue.length > 0) {
-            const nextTrack = queue[0];
-            try {
-                await distube.createCustomPlaylist(nextTrack, {
-                    properties: { seek: 0 }
-                });
-            } catch (error) {
-                console.error('Error al precargar:', error);
-            }
-        }
-    }
-}
-
-const musicManager = new MusicManager();
 
 module.exports = {
     name: 'play',
     async execute(message, args) {
         if (!message.member.voice.channel) {
             return message.reply('¡Debes estar en un canal de voz!');
+        }
+
+        // Reset leave timer if it exists
+        if (leaveTimers.has(message.guild.id)) {
+            clearTimeout(leaveTimers.get(message.guild.id));
+            leaveTimers.delete(message.guild.id);
         }
 
         const query = args.join(' ');
@@ -107,8 +50,14 @@ module.exports = {
                 }
             }
 
-            await musicManager.addToQueue(message.guild.id, videoUrl, message);
-            message.reply('Canción añadida a la cola! 🎵');
+            // Usar directamente distube para reproducir la canción
+            await distube.play(message.member.voice.channel, videoUrl, {
+                member: message.member,
+                textChannel: message.channel,
+                message
+            });
+            
+            message.reply('🎵 Reproduciendo la canción!');
             
         } catch (error) {
             console.error('Error:', error);

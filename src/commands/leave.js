@@ -1,5 +1,8 @@
 const { distube } = require('../config/config');
 
+// Map to store leave timers for each guild
+const leaveTimers = new Map();
+
 module.exports = {
     name: 'leave',
     async execute(message) {
@@ -9,23 +12,32 @@ module.exports = {
             return message.reply('¡Debes estar en un canal de voz!');
         }
 
+        // Clear any existing timer
+        if (leaveTimers.has(message.guild.id)) {
+            clearTimeout(leaveTimers.get(message.guild.id));
+            leaveTimers.delete(message.guild.id);
+        }
+
         if (queue) {
-            setTimeout(() => {
+            const timerId = setTimeout(() => {
                 queue.stop();
                 queue.voice.leave();
+                leaveTimers.delete(message.guild.id);
                 return message.channel.send('👋 ¡Adiós!');
             }, 60000);
-
-
+            leaveTimers.set(message.guild.id, timerId);
         } else {
             if (message.guild.members.me.voice.channel) {
-                setTimeout(() => {
+                const timerId = setTimeout(() => {
                     message.guild.members.me.voice.disconnect();
+                    leaveTimers.delete(message.guild.id);
                     return message.channel.send('👋 ¡Adiós!');
-                }, 60000);
+                }, 600000);
+                leaveTimers.set(message.guild.id, timerId);
             } else {
                 return message.reply('¡No estoy en ningún canal de voz!');
             }
         }
-    }
+    },
+    leaveTimers
 }; 
