@@ -14,7 +14,6 @@ module.exports = {
             return message.reply('¡Debes estar en un canal de voz!');
         }
 
-        // Reset leave timer if it exists
         if (leaveTimers.has(message.guild.id)) {
             clearTimeout(leaveTimers.get(message.guild.id));
             leaveTimers.delete(message.guild.id);
@@ -50,7 +49,6 @@ module.exports = {
                 }
             }
 
-            // Usar directamente distube para reproducir la canción
             await distube.play(message.member.voice.channel, videoUrl, {
                 member: message.member,
                 textChannel: message.channel,

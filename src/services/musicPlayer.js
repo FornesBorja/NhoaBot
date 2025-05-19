@@ -7,6 +7,7 @@ class MusicPlayer {
         }
 
         this.distube = distube;
+        this.leaveTimers = new Map();
         this.initializeEvents();
         MusicPlayer.instance = this;
     }
@@ -20,6 +21,15 @@ class MusicPlayer {
             })
             .on('addSong', (queue, song) => {
                 queue.textChannel.send(`✅ Añadida \`${song.name}\` a la cola`);
+                try {
+                    const guildId = queue?.guild?.id;
+                    if (guildId && this.leaveTimers.has(guildId)) {
+                        clearTimeout(this.leaveTimers.get(guildId));
+                        this.leaveTimers.delete(guildId);
+                    }
+                } catch (error) {
+                    console.error('Error al resetear el timer:', error);
+                }
             })
             .on('empty', (queue) => {
                 queue.textChannel.send('El canal de voz está vacío. ¡Hasta luego! 👋');
@@ -28,12 +38,21 @@ class MusicPlayer {
             })
             .on('finish', (queue) => {
                 queue.textChannel.send('🎵 La cola de reproducción ha terminado.');
-                setTimeout(() => {
-                    if (queue.voice.channel) {
-                        queue.textChannel.send('⏹️ No hay más canciones en la cola. ¡Hasta luego! 👋');
-                        queue.voice.leave();
+                try {
+                    const guildId = queue?.guild?.id;
+                    if (guildId) {
+                        const timerId = setTimeout(() => {
+                            if (queue.voice.channel) {
+                                queue.textChannel.send('⏹️ No hay más canciones en la cola. ¡Hasta luego! 👋');
+                                queue.voice.leave();
+                                this.leaveTimers.delete(guildId);
+                            }
+                        }, 300000);
+                        this.leaveTimers.set(guildId, timerId);
                     }
-                }, 60000);
+                } catch (error) {
+                    console.error('Error al establecer el timer:', error);
+                }
             });
     }
 
