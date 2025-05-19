@@ -1,10 +1,11 @@
 const ytdl = require('ytdl-core');
 const ytSearch = require('yt-search');
-const MusicPlayer = require('../services/musicPlayer');
 const { distube } = require('../config/config');
+const { leaveTimers } = require('./leave');
 
-// Obtenemos la instancia única
-const musicPlayer = MusicPlayer.getInstance(distube);
+// Sistema de caché optimizado
+const searchCache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000;
 
 module.exports = {
     name: 'play',
@@ -13,31 +14,52 @@ module.exports = {
             return message.reply('¡Debes estar en un canal de voz!');
         }
 
+        if (leaveTimers.has(message.guild.id)) {
+            clearTimeout(leaveTimers.get(message.guild.id));
+            leaveTimers.delete(message.guild.id);
+        }
+
         const query = args.join(' ');
         if (!query) return message.reply('Debes escribir el nombre de una canción o un enlace.');
 
         try {
-            if (ytdl.validateURL(query)) {
-                message.reply('Reproduciendo canción: ' + query);
-                await musicPlayer.play(message.member.voice.channel, query, {
-                    textChannel: message.channel,
-                    member: message.member,
-                });
-            } else {
-                const results = await ytSearch(query);
-                if (!results?.videos?.length) {
-                    return message.reply('No pude encontrar ninguna canción con ese nombre.');
+            let videoUrl;
+            
+            if (searchCache.has(query)) {
+                const cached = searchCache.get(query);
+                if (Date.now() - cached.timestamp < CACHE_DURATION) {
+                    videoUrl = cached.url;
                 }
-
-                const videoUrl = results.videos[0].url;
-                await musicPlayer.play(message.member.voice.channel, videoUrl, {
-                    textChannel: message.channel,
-                    member: message.member,
-                });
             }
+
+            if (!videoUrl) {
+                if (ytdl.validateURL(query)) {
+                    videoUrl = query;
+                } else {
+                    const results = await ytSearch(query);
+                    if (!results?.videos?.length) {
+                        return message.reply('No pude encontrar ninguna canción con ese nombre.');
+                    }
+                    videoUrl = results.videos[0].url;
+                    
+                    searchCache.set(query, {
+                        url: videoUrl,
+                        timestamp: Date.now()
+                    });
+                }
+            }
+
+            await distube.play(message.member.voice.channel, videoUrl, {
+                member: message.member,
+                textChannel: message.channel,
+                message
+            });
+            
+            message.reply('🎵 Reproduciendo la canción!');
+            
         } catch (error) {
-            console.error('Error al intentar reproducir la canción:', error);
-            return message.reply('Hubo un error al intentar reproducir la canción. Intenta de nuevo más tarde.');
+            console.error('Error:', error);
+            return message.reply('Hubo un error al intentar reproducir la canción.');
         }
     }
 };

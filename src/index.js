@@ -3,6 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const { client, distube } = require('./config/config');
 const MusicPlayer = require('./services/musicPlayer');
+const { searchSpotify } = require('./services/spotifyService');
+const { searchYouTube } = require('./services/youtubeService');
 
 client.commands = new Map();
 const commandsPath = path.join(__dirname, 'commands');
@@ -43,5 +45,22 @@ client.on('messageCreate', async (message) => {
 });
 
 const musicPlayer = MusicPlayer.getInstance(distube);
+
+async function handleSearch(query) {
+    try {
+        const spotifyResults = await searchSpotify(query);
+        if (spotifyResults.length > 0) {
+            console.log('Resultados de Spotify:', spotifyResults);
+            return; 
+        }
+
+      
+        const youtubeResults = await searchYouTube(query);
+        console.log('Resultados de YouTube:', youtubeResults);
+    } catch (error) {
+        console.error('Error al buscar:', error);
+    }
+}
+
 
 client.login(process.env.DISCORD_TOKEN);
